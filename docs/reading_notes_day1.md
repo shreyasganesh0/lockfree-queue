@@ -1,6 +1,6 @@
 #Key Insights from Ulrich Drepper's Paper "What Every Programmer Should Know About Memory"
 
-## Section 2.1
+## Section 2.1 - Why Caches Exist (RAM and why its slow)
 - 2 types of RAM - Static (SRAM) and Dynamic (DRAM)
 - Static RAM
     - 6 transistors per cell 4 transistor ones exist but have disadvantages
@@ -90,6 +90,30 @@
  - number of address lines needed is important to cost
  - DRAM reads and write have latency due to capacitor recharge and discharge
 
-    
+-------------------------------------------------------------------------------------------    
+## Section 3.1 - CPU Caches
+- early archs had one level of caching which was directly connected to the CPU
+    - the bus connects the main memory to the cache and the CPU is connected to the cache
+    - essentially a write through caching mechanism
+    - fast connection between the CPU and cache
+    - most architectures us Von Nuemann these days but seperate caches for data and code
+        - icache for instructions and data cache
+        - done by intel since 1993
+        - this is done because memory regions for code and data are seperate
+        - further solidified because of instruction decoding step in the pipeline which is           slow and can benifit from decoded instructions cache.
+- Once speed of cache was too fast another level of cache was added
+    - slower and bigger than first layer
+    - these days even 3 layers of caches are common
+- L1i and L1d cache, L2 cache and L3 cache
+    - data doesnt have to write through the higher level caches before going to main memory
 
+- Multi processor system
+    - processors are an entire unit consisting of cores and thread and connect to 
+      main memory directly via bus
+    - multi core have seperate copies of all required hardware resources 
+      and run indpendently
+        - have their own L1 cache, usually share L2 cache and L3 cache
+    - threads only have seperate registers (sometimes even that is shared)
+        - threads share L1 cache
 
+-------------------------------------------------------------------------------------------
