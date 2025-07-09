@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail # strict error handling
 
+# Simple colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -10,6 +11,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}Performance Regression Check${NC}"
 echo "============================"
 
+# Validate arguments
 if [ $# -ne 2 ]; then
     echo -e "${RED}ERROR: Invalid args passed${NC}"
     echo "Usage: $0 <main_results_file> <pr_results_file>"
@@ -19,6 +21,7 @@ fi
 MAIN_RESULTS_FILE="$1"
 PR_RESULTS_FILE="$2"
 
+# Validate input files exist
 if [ ! -f "$MAIN_RESULTS_FILE" ]; then
     echo -e "${RED}ERROR: Main results file '$MAIN_RESULTS_FILE' not found${NC}"
     exit 1
@@ -37,119 +40,134 @@ extract_value() {
     local value=$(grep "^$test_type time:" "$file" | awk '{print $4}' | head -1)
     
     if [ -z "$value" ]; then
-        echo -e "${RED}ERROR: No data found for '$test_type' in $file${NC}" >&2
+        echo "ERROR: No data found for '$test_type' in $file" >&2
         echo "0"
         return 1
     fi
     
     if ! echo "$value" | grep -qE '^[0-9]+\.[0-9]+$'; then
-        echo -e "${RED}ERROR: Invalid value '$value' for '$test_type' in $file${NC}" >&2
+        echo "ERROR: Invalid value '$value' for '$test_type' in $file" >&2
         echo "0"
         return 1
     fi
     
-    echo -e "${BLUE}  Extracted '$test_type' from $(basename "$file"): ${value}s${NC}" >&2
     echo "$value"
 }
 
-# Function to validate extracted value
-validate_value() {
-    local value="$1"
-    local test_name="$2"
-    local file_type="$3"
-    
-    if [ -z "$value" ] || [ "$value" = "0" ]; then
-        echo -e "${RED}ERROR: Could not extract valid data for $test_name from $file_type results${NC}"
-        return 1
-    fi
-    
-    return 0
-}
+# Extract all values
+echo "Extracting performance values..."
 
-echo -e "${BLUE}Extracting performance values...${NC}"
-
-echo "Main branch results:"
 MAIN_FALSE_SHARING=$(extract_value "$MAIN_RESULTS_FILE" "False Sharing")
 MAIN_FALSE_ALIGNED=$(extract_value "$MAIN_RESULTS_FILE" "False Aligned")
 MAIN_CACHE_ALIGNED=$(extract_value "$MAIN_RESULTS_FILE" "Cache Aligned")
 
-echo "PR branch results:"
 PR_FALSE_SHARING=$(extract_value "$PR_RESULTS_FILE" "False Sharing")
 PR_FALSE_ALIGNED=$(extract_value "$PR_RESULTS_FILE" "False Aligned")
 PR_CACHE_ALIGNED=$(extract_value "$PR_RESULTS_FILE" "Cache Aligned")
 
-echo -e "\n${BLUE}Validating extracted data...${NC}"
-validate_value "$MAIN_FALSE_SHARING" "False Sharing" "main" || exit 1
-validate_value "$MAIN_FALSE_ALIGNED" "False Aligned" "main" || exit 1
-validate_value "$MAIN_CACHE_ALIGNED" "Cache Aligned" "main" || exit 1
-validate_value "$PR_FALSE_SHARING" "False Sharing" "PR" || exit 1
-validate_value "$PR_FALSE_ALIGNED" "False Aligned" "PR" || exit 1
-validate_value "$PR_CACHE_ALIGNED" "Cache Aligned" "PR" || exit 1
+# Validate extracted values
+if [ "$MAIN_FALSE_SHARING" = "0" ] || [ "$MAIN_FALSE_ALIGNED" = "0" ] || [ "$MAIN_CACHE_ALIGNED" = "0" ] || \
+   [ "$PR_FALSE_SHARING" = "0" ] || [ "$PR_FALSE_ALIGNED" = "0" ] || [ "$PR_CACHE_ALIGNED" = "0" ]; then
+    echo -e "${RED}ERROR: Failed to extract valid data from one or both files${NC}"
+    exit 1
+fi
 
-echo -e "${GREEN}✓ All data validation passed${NC}"
+echo "Main branch results: FS=$MAIN_FALSE_SHARING FA=$MAIN_FALSE_ALIGNED CA=$MAIN_CACHE_ALIGNED"
+echo "PR branch results:   FS=$PR_FALSE_SHARING FA=$PR_FALSE_ALIGNED CA=$PR_CACHE_ALIGNED"
 
-# Function to calculate and display regression
+# Function to calculate regression (simplified)
 calculate_regression() {
-    local main_value=$1
-    local pr_value=$2
-    local test_name=$3
-    local threshold=${4:-5} # Default threshold is 5%
+    local main_val="$1"
+    local pr_val="$2" 
+    local test_name="$3"
+    local threshold=5
     
-    local percentage=$(echo "scale=3; (($pr_value - $main_value) / $main_value) * 100" | bc)
-    local abs_percentage=$(echo "scale=3; if ($percentage < 0) -$percentage else $percentage" | bc)
-    local is_regression=$(echo "$abs_percentage > $threshold" | bc)
-    local is_improvement=$(echo "$percentage < -$threshold" | bc)
+    # Use awk for calculation
+    local result=$(awk -v main="$main_val" -v pr="$pr_val" -v thresh="$threshold" '
+    BEGIN {
+        percentage = (pr - main) / main * 100
+        abs_percentage = (percentage < 0) ? -percentage : percentage
+        
+        if (abs_percentage > thresh && percentage > 0) {
+            status = "REGRESSION"
+            exit_code = 1
+        } else if (percentage < -thresh) {
+            status = "IMPROVEMENT" 
+            exit_code = 0
+        } else {
+            status = "ACCEPTABLE"
+            exit_code = 0
+        }
+        
+        printf "%s %.2f %d", status, percentage, exit_code
+    }')
     
-    printf "%-15s | Main: %8.6fs | PR: %8.6fs | Change: %+7.2f%% | " "$test_name" "$main_value" "$pr_value" "$percentage"
+    local status=$(echo "$result" | cut -d' ' -f1)
+    local percentage=$(echo "$result" | cut -d' ' -f2)
+    local exit_code=$(echo "$result" | cut -d' ' -f3)
     
-    if [ "$is_regression" -eq 1 ] && [ "$is_improvement" -eq 0 ]; then
-        echo -e "${RED}REGRESSION (>${threshold}%)${NC}"
-        return 1
-    elif [ "$is_improvement" -eq 1 ]; then
-        echo -e "${GREEN}IMPROVEMENT (>${threshold}%)${NC}"
-        return 0
-    else
-        echo -e "${YELLOW}ACCEPTABLE (<=${threshold}%)${NC}"
-        return 0
-    fi
+    # Print result
+    printf "%-15s: Main=%8.6fs PR=%8.6fs Change=%+6.2f%% Status=" "$test_name" "$main_val" "$pr_val" "$percentage"
+    
+    case $status in
+        "REGRESSION")
+            echo -e "${RED}REGRESSION${NC}"
+            return 1
+            ;;
+        "IMPROVEMENT")
+            echo -e "${GREEN}IMPROVEMENT${NC}"
+            return 0
+            ;;
+        *)
+            echo -e "${YELLOW}ACCEPTABLE${NC}"
+            return 0
+            ;;
+    esac
 }
 
-echo -e "\n${BLUE}Performance Comparison Results:${NC}"
-echo "=================================================================================="
-printf "%-15s | %-12s | %-12s | %-12s | %s\n" "Test Name" "Main Branch" "PR Branch" "Change" "Status"
-echo "=================================================================================="
+echo ""
+echo "Performance Comparison Results:"
+echo "============================================="
 
 FAILED=0
 TOTAL_TESTS=0
 
-echo -n "False Sharing   | "
+# Test 1: False Sharing
 if ! calculate_regression "$MAIN_FALSE_SHARING" "$PR_FALSE_SHARING" "False Sharing"; then
-    FAILED=1
+    FAILED=$((FAILED + 1))
 fi
-((TOTAL_TESTS++))
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
-echo -n "False Aligned   | "
+# Test 2: False Aligned  
 if ! calculate_regression "$MAIN_FALSE_ALIGNED" "$PR_FALSE_ALIGNED" "False Aligned"; then
-    FAILED=1
+    FAILED=$((FAILED + 1))
 fi
-((TOTAL_TESTS++))
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
-echo -n "Cache Aligned   | "
+# Test 3: Cache Aligned
 if ! calculate_regression "$MAIN_CACHE_ALIGNED" "$PR_CACHE_ALIGNED" "Cache Aligned"; then
-    FAILED=1
+    FAILED=$((FAILED + 1))
 fi
-((TOTAL_TESTS++))
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
-echo "=================================================================================="
+echo "============================================="
 
-echo -e "\n${BLUE}Summary:${NC}"
+# Summary
 PASSED_TESTS=$((TOTAL_TESTS - FAILED))
+echo ""
+echo "SUMMARY:"
+echo "  Tests passed: $PASSED_TESTS/$TOTAL_TESTS"
+echo "  Tests failed: $FAILED/$TOTAL_TESTS"
+
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}✓ All $TOTAL_TESTS tests passed - No performance regressions detected${NC}"
+    echo -e "${GREEN}OVERALL RESULT: PASSED - No performance regressions detected${NC}"
+    OVERALL_STATUS="PASSED"
 else
-    echo -e "${RED}✗ $FAILED out of $TOTAL_TESTS tests failed - Performance regression detected${NC}"
+    echo -e "${RED}OVERALL RESULT: FAILED - Performance regression detected${NC}"
+    OVERALL_STATUS="FAILED"
 fi
 
+# Simple CSV logging
 CSV_FILE="performance_history.csv"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 GIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
@@ -157,17 +175,22 @@ GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 
 # Create CSV header if file doesn't exist
 if [ ! -f "$CSV_FILE" ]; then
-    echo "timestamp,git_hash,git_branch,false_sharing_time,false_aligned_time,cache_aligned_time,tests_passed,tests_failed" > "$CSV_FILE"
+    echo "timestamp,git_hash,git_branch,false_sharing_time,false_aligned_time,cache_aligned_time,tests_passed,tests_failed,overall_status" > "$CSV_FILE"
 fi
 
-echo "$TIMESTAMP,$GIT_HASH,$GIT_BRANCH,$PR_FALSE_SHARING,$PR_FALSE_ALIGNED,$PR_CACHE_ALIGNED,$PASSED_TESTS,$FAILED" >> "$CSV_FILE"
+# Append results to CSV
+echo "$TIMESTAMP,$GIT_HASH,$GIT_BRANCH,$PR_FALSE_SHARING,$PR_FALSE_ALIGNED,$PR_CACHE_ALIGNED,$PASSED_TESTS,$FAILED,$OVERALL_STATUS" >> "$CSV_FILE"
 
-echo -e "${BLUE}Results logged to: $CSV_FILE${NC}"
+echo ""
+echo "Results logged to: $CSV_FILE"
 
+# Clear exit indication
+echo ""
+echo "============================================="
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}Performance check PASSED${NC}"
+    echo -e "${GREEN}SCRIPT EXITING WITH SUCCESS CODE (0)${NC}"
     exit 0
 else
-    echo -e "${RED}Performance check FAILED${NC}"
+    echo -e "${RED}SCRIPT EXITING WITH FAILURE CODE (1)${NC}"
     exit 1
 fi
