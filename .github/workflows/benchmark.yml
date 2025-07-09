@@ -1,21 +1,33 @@
 name: Performance Benchmarks
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_requests:
+    branches: [ main ]
 
 jobs:
   benchmark:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out PR code
         uses: actions/checkout@v3
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bc
+
       - name: Build and run benchmarks on PR code
         run: |
           cd experiments/false_sharing
-          ./build.sh
-          bin/false_sharing bad > /tmp/pr_bad_results.txt
-          bin/false_sharing good > /tmp/pr_good_results.txt
-          bin/false_sharing good cross-ccx > /tmp/pr_good_cross_results.txt
-          bin/false_sharing good same-ccx > /tmp/pr_good_same_results.txt
+          scripts/build.sh
+          for i in {1..10} do
+            bin/false_sharing bad >> /tmp/pr_results_raw.txt
+            bin/false_sharing good >> /tmp/pr_results_raw.txt
+            bin/false_sharing good cross-ccx >> /tmp/pr_results_raw.txt
+          done
+          scripts/avg_results.sh /tmp/pr_results_raw.txt /tmp/pr_results.txt
 
       - name: Check out main branch
         uses: actions/checkout@v3
@@ -25,22 +37,24 @@ jobs:
       - name: Build and run benchmarks on main code
         run: |
           cd experiments/false_sharing
-          ./build.sh
-          bin/false_sharing bad > /tmp/main_bad_results.txt
-          bin/false_sharing good > /tmp/main_good_results.txt
-          bin/false_sharing good cross-ccx > /tmp/main_good_cross_results.txt
-          bin/false_sharing good same-ccx > /tmp/main_good_same_results.txt
+          scripts/build.sh
+          for i in {1..10} do
+            bin/false_sharing bad >> /tmp/main_results_raw.txt
+            bin/false_sharing good >> /tmp/main_results_raw.txt
+            bin/false_sharing good cross-ccx >> /tmp/main_results_raw.txt
+          done
+          scripts/avg_results.sh /tmp/main_results_raw.txt /tmp/main_results.txt
 
-      - name: Compare resulsts of PR and main
-        run: | 
-          echo "---- Main resutls ----"
-          cat /tmp/main_bad_results.txt
-          cat /tmp/main_good_results.txt
-          cat /tmp/main_good_cross_results.txt
-          cat /tmp/main_good_same_results.txt
-          echo "---- PR results ----"
-          cat /tmp/pr_bad_results.txt
-          cat /tmp/pr_good_results.txt
-          cat /tmp/pr_good_cross_results.txt
-          cat /tmp/pr_good_same_results.txt
+      - name: Compare results of PR and main
+        run: scripts/check_performance_regression.sh /tmp/main_results.txt /tmp/pr_results.txt >> /tmp/performance_result_$(date).txt
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: benchmark-results
+          path: |
+            /tmp/performance_result_*.txt
+            /tmp/*_results.txt
+            performance_history.csv
           

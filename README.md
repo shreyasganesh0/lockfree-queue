@@ -1,4 +1,6 @@
-# lockfree-queue
+# Lock-Free Queue Benchmark
+
+[![Performance Benchmarks](https://github.com/shreyaganesh0/lockfree-queue/actions/workflows/benchmark.yml/badge.svg)](https://github.com/shreyaganesh0/lockfree-queue/actions/workflows/benchmark.yml)
 
 ## Description
 Production grade lock-free queue implementation acheiving 50M ops/second. designed for high frequesncy operations where microsecond latency matters.
