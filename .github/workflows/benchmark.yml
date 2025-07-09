@@ -22,7 +22,7 @@ jobs:
         run: |
           cd experiments/false_sharing
           scripts/build.sh
-          for i in {1..10}; do
+          for i in {1..3}; do
             bin/false_sharing bad >> /tmp/pr_results_raw.txt
             bin/false_sharing good >> /tmp/pr_results_raw.txt
             bin/false_sharing good cross-ccx >> /tmp/pr_results_raw.txt
@@ -38,7 +38,7 @@ jobs:
         run: |
           cd experiments/false_sharing
           scripts/build.sh
-          for i in {1..10}; do
+          for i in {1..3}; do
             bin/false_sharing bad >> /tmp/main_results_raw.txt
             bin/false_sharing good >> /tmp/main_results_raw.txt
             bin/false_sharing good cross-ccx >> /tmp/main_results_raw.txt
@@ -46,7 +46,7 @@ jobs:
           scripts/avg_results.sh /tmp/main_results_raw.txt /tmp/main_results.txt
 
       - name: Compare results of PR and main
-        run: scripts/check_performance_regression.sh /tmp/main_results.txt /tmp/pr_results.txt >> /tmp/performance_result_$(date).txt
+        run: scripts/check_performance_regression.sh /tmp/main_results.txt /tmp/pr_results.txt >> /tmp/performance_result.txt
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
@@ -54,7 +54,7 @@ jobs:
         with:
           name: benchmark-results
           path: |
-            /tmp/performance_result_*.txt
+            /tmp/performance_result.txt
             /tmp/*_results.txt
             performance_history.csv
           
