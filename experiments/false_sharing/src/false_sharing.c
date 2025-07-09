@@ -74,8 +74,18 @@ void *cache_coherence(void *thread_counter) {
     double elapsed = (end.tv_sec + (end.tv_nsec / 1000000000.0)) 
         - (start.tv_sec + (start.tv_nsec / 1000000000.0));
 
-    printf("Time taken for thread %c to complete = %.6f\n", 
-            counter_thread->thread_id, elapsed); 
+    switch (counter_thread->counter_type) {
+        case 0:
+            printf("False Sharing time: %.6f seconds\n", elapsed); 
+            break;
+        case 1:
+            printf("Cache Aligned time: %.6f seconds\n", elapsed); 
+            break;
+        case 2:
+            printf("False Aligned time: %.6f seconds\n", elapsed); 
+            break;
+        default:
+    }
 
     return NULL;
 }
@@ -86,6 +96,7 @@ int main(int argc, char *argv[]) {
     thread_counter_t thread_counter_2;
 
     int counter_flag = 0;
+    int v_flag = 0;
     thread_counter_1.thread_id = 0;
     thread_counter_2.thread_id = 1;
 
@@ -95,12 +106,10 @@ int main(int argc, char *argv[]) {
 
                 thread_counter_1.counter_type = 1;
                 thread_counter_2.counter_type = 1;
-            printf("Size of good struct = %zu bytes\n", sizeof(good_counter_t));
         } else if (strcmp(argv[1], "bad") == 0) {
 
                 thread_counter_1.counter_type = 0;
                 thread_counter_2.counter_type = 0;
-            printf("Size of bad struct = %zu bytes\n", sizeof(bad_counter_t));
         } else {
 
             printf("Invalid args");
@@ -115,17 +124,21 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[2], "cross-ccx") == 0) {
 
             thread_counter_2.thread_id = 8; //to put it into a different ccx
-            printf("Size of good struct = %zu bytes\n", sizeof(false_good_counter_t));
 
         } else if (strcmp(argv[2], "same-ccx") == 0) {
 
-            printf("Size of struct = %zu bytes\n", sizeof(false_good_counter_t));
         } else {
 
             printf("Invalid args");
             exit(1);
         }
 
+    } else if (argc == 4) {
+
+        if (strcmp(argv[4], "--verbose") == 0) {
+
+            v_flag = 1;
+        }
     } else {
 
         printf("Invalid args");
@@ -144,17 +157,22 @@ int main(int argc, char *argv[]) {
                     perror("Failed to allocate to counter");
                     exit(1);
                 }
-                printf("Address of counter 1 is %p\n",
-                    &((bad_counter_t*)thread_counter_1.counter)->thread_1_counter);
 
-                printf("Address of counter 2 is %p\n",
-                     &((bad_counter_t*)thread_counter_1.counter)->thread_2_counter);
+                if (v_flag == 1) {
+                    printf("Size of bad struct = %zu bytes\n", sizeof(bad_counter_t));
+                    printf("Address of counter 1 is %p\n",
+                        &((bad_counter_t*)thread_counter_1.counter)->thread_1_counter);
 
-                printf("Distance between counter 1 and counter 2 is %ld bytes\n",
-                    (char*)&((bad_counter_t*)thread_counter_1.counter)->thread_2_counter 
-                   - (char*)&((bad_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                    printf("Address of counter 2 is %p\n",
+                         &((bad_counter_t*)thread_counter_1.counter)->thread_2_counter);
+
+                    printf("Distance between counter 1 and counter 2 is %ld bytes\n",
+                        (char*)&((bad_counter_t*)thread_counter_1.counter)->thread_2_counter 
+                       - (char*)&((bad_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                }
 
                 pthread_t bad_thread_1, bad_thread_2;
+
 
                 if(pthread_create(&bad_thread_1, NULL, cache_coherence, &thread_counter_1) != 0) {
 
@@ -193,15 +211,18 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 }
 
-                printf("Address of counter 1 is %p\n",
-                        &((good_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                if (v_flag == 1) {
+                    printf("Size of good struct = %zu bytes\n", sizeof(good_counter_t));
+                    printf("Address of counter 1 is %p\n",
+                            &((good_counter_t*)thread_counter_1.counter)->thread_1_counter);
 
-                printf("Address of counter 2 is %p\n",
-                        &((good_counter_t*)thread_counter_1.counter)->thread_2_counter);
+                    printf("Address of counter 2 is %p\n",
+                            &((good_counter_t*)thread_counter_1.counter)->thread_2_counter);
 
-                printf("Distance between counter 1 and counter 2 is %ld bytes\n",
-                (char*)&((good_counter_t*)thread_counter_1.counter)->thread_2_counter 
-                - (char*)&((good_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                    printf("Distance between counter 1 and counter 2 is %ld bytes\n",
+                    (char*)&((good_counter_t*)thread_counter_1.counter)->thread_2_counter 
+                    - (char*)&((good_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                }
 
                 pthread_t good_thread_1, good_thread_2;
 
@@ -242,15 +263,18 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 }
 
-                printf("Address of counter 1 is %p\n", 
-                     &((false_good_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                if (v_flag == 1) {
+                    printf("Size of false good struct = %zu bytes\n", sizeof(false_good_counter_t));
+                    printf("Address of counter 1 is %p\n", 
+                         &((false_good_counter_t*)thread_counter_1.counter)->thread_1_counter);
 
-                printf("Address of counter 2 is %p\n",
-                    &((false_good_counter_t*)thread_counter_1.counter)->thread_2_counter);
+                    printf("Address of counter 2 is %p\n",
+                        &((false_good_counter_t*)thread_counter_1.counter)->thread_2_counter);
 
-                printf("Distance between counter 1 and counter 2 is %ld bytes\n", 
-            (char*)&((false_good_counter_t*)thread_counter_1.counter)->thread_2_counter 
-            - (char*)&((false_good_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                    printf("Distance between counter 1 and counter 2 is %ld bytes\n", 
+                (char*)&((false_good_counter_t*)thread_counter_1.counter)->thread_2_counter 
+                - (char*)&((false_good_counter_t*)thread_counter_1.counter)->thread_1_counter);
+                }
 
                 pthread_t good_thread_1, good_thread_2;
 
