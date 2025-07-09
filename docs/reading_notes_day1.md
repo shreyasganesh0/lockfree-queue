@@ -117,3 +117,65 @@
         - threads share L1 cache
 
 -------------------------------------------------------------------------------------------
+
+## 3.3.2 - Cache timings
+- L1d cache ~4 cycles
+- L2 cache ~14 cycles
+- Main memory ~200 cycles
+- Sequential access
+    - 3 distinct levels seen for cycle values needed to access memory.
+        - 2^14 bytes
+        - 2^15 - 2^20 bytes
+        - 2^21 bytes
+        - these levels are explainable due to the system having 16kB L1d cache 
+          and 1MB L2 cache
+    - For load sizes that dont fit into L1 cache it is expected that they take 14 cycles
+      to fetch from L2 cache
+        - in reality this doesnt occur since processor optimizes
+        - proccessors prefetch data from consecutive data blocks if they anticipate 
+          that they will be accessed soon based on the access patterns 
+          of recent data fetchs
+    - Prefetching has even more pronounced affects when the size exceeds L2 cache
+        - main memory is expectd to take 200 cycles to fetch 
+    - hardware prefetching cannot cross page boundaries
+    - prefetching is more effective in cases where operations take some time so the hardware
+      can swap out the cacheline
+    - TLB cache misses can also cause slowdown
+        - when translating virtual to phsycial address the translations are stored in TLB
+        - if not present it has to go to the MMU for the translation
+        - TLB is a look aside cache meaning lookups run in parallel to the L1d cache
+    - Prefetching can be seen in elements wher arr[i] is added to arr[i + 1] 
+        - since i + 1 can be prefetched it is much faster than simply incrementing arr[i]
+          with 1
+        - it might take more more data to be loaded into cache since it cant just evict but 
+          also needs to write the data to main memory
+    - Size of cache also plays an important role
+        - increasing size usually means less main memory access and faster speeds
+        - especially last level cache size since that can be much larger
+
+- Random access
+    - reduces amount of prefetching benifit significantly
+    - also increases number of cycles needed to access each level of memory
+        - main memory for random will almost double to 450 cycles from 200 - 300
+        - the prefetching is causing the data access pattern to be inefficient since it 
+          cant predict it reliably
+    - as the working set growns the miss rate doesnt plateaue like sequential
+      but grows till its 100%
+    - Per element access time more than doubles with doubling of working set
+        - unlike sequential access where the increase is only due to the doubling of size
+        - this is due to the TLB misses as well
+
+- Conclusion
+    - Levels of caches introduce significant speedups in fetch time
+    - prefetching at the hardware level exists which is very benificial for sequential 
+      access patterns
+    - prefetching happens at the cache and TLB level
+    - has a more than expected positive affect for sequential access and more than 
+      expected negative in the random access case.
+
+-------------------------------------------------------------------------------------------
+
+    - 
+
+
+    
