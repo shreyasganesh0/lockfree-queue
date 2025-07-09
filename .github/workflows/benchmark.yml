@@ -5,8 +5,40 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
+      - name: Check out PR code
         uses: actions/checkout@v3
 
-      - name: Say hello
-        run: echo "Testing hell for github actions!"
+      - name: Build and run benchmarks on PR code
+        run: |
+          experiments/false_sharing/build.sh
+          experiments/false_sharing/bin/false_sharing bad > /tmp/pr_bad_results.txt
+          experiments/false_sharing/bin/false_sharing good > /tmp/pr_good_results.txt
+          experiments/false_sharing/bin/false_sharing good cross-ccx > /tmp/pr_good_cross_results.txt
+          experiments/false_sharing/bin/false_sharing good same-ccx > /tmp/pr_good_same_results.txt
+
+      - name: Check out main branch
+        uses: actions/checkout@v3
+        with:
+          ref: main #uses main branch
+
+      - name: Build and run benchmarks on main code
+        run: |
+          experiments/false_sharing/build.sh
+          experiments/false_sharing/bin/false_sharing bad > /tmp/main_bad_results.txt
+          experiments/false_sharing/bin/false_sharing good > /tmp/main_good_results.txt
+          experiments/false_sharing/bin/false_sharing good cross-ccx > /tmp/main_good_cross_results.txt
+          experiments/false_sharing/bin/false_sharing good same-ccx > /tmp/main_good_same_results.txt
+
+      - name: Compare resulsts of PR and main
+        run: | 
+          echo "---- Main resutls ----"
+          cat /tmp/main_bad_results.txt
+          cat /tmp/main_good_results.txt
+          cat /tmp/main_good_cross_results.txt
+          cat /tmp/main_good_same_results.txt
+          echo "---- PR results ----"
+          cat /tmp/pr_bad_results.txt
+          cat /tmp/pr_good_results.txt
+          cat /tmp/pr_good_cross_results.txt
+          cat /tmp/pr_good_same_results.txt
+          
