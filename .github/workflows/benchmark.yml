@@ -1,0 +1,12 @@
+name: Performance Benchmarks
+on: [push, pull_requests]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Say hello
+        run: echo "Testing hell for github actions!"
