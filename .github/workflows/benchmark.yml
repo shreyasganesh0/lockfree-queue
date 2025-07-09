@@ -46,7 +46,9 @@ jobs:
           scripts/avg_results.sh /tmp/main_results_raw.txt /tmp/main_results.txt
 
       - name: Compare results of PR and main
-        run: scripts/check_performance_regression.sh /tmp/main_results.txt /tmp/pr_results.txt >> /tmp/performance_result.txt
+        run: |
+          cd experiments/false_sharing
+          scripts/check_performance_regression.sh /tmp/main_results.txt /tmp/pr_results.txt >> /tmp/performance_result.txt
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
