@@ -1,4 +1,4 @@
-#Key Insights from Ulrich Drepper's Paper "What Every Programmer Should Know About Memory"
+# Key Insights from Ulrich Drepper's Paper "What Every Programmer Should Know About Memory"
 
 ## Section 2.1 - Why Caches Exist (RAM and why its slow)
 - 2 types of RAM - Static (SRAM) and Dynamic (DRAM)
