@@ -110,8 +110,26 @@ int main(int argc, char *argv[]) {
 
     if (reorder_t0.reorder_flag || reorder_t1.reorder_flag) {
 
-        printf("Instruction has been reordered! Completed %ld iterations\n", 
-                iteration_counter); 
+	int reorder_threadid = reorder_t0.reorder_flag == 1 ? 0 : 1;
+
+
+	printf("\n=== MEMORY REORDERING DETECTED ===\n"
+"Iteration: %ld (%.4f%% of maximum)\n\n"
+"What happened (chronological order):\n"
+"1. Thread %d@Core0: Set flag0 = 1\n"
+"2. Thread %d@Core0: Read flag1 = 0 (appears safe to enter)\n"
+"3. Thread %d@Core7: Set flag1 = 1\n"  
+"4. Thread %d@Core7: Read flag0 = 0 (also appears safe!)\n\n"
+"Both threads entered the critical section!\n\n"
+"CPU Explanation:\n"
+"- Thread %d's read of flag1 executed BEFORE its write to flag0 was visible\n"
+"- Thread %d's read of flag0 executed BEFORE its write to flag1 was visible\n"
+"- This is Store-Load reordering in action\n\n"
+"Without reordering, at least one thread would have seen the other's flag\n",
+                iteration_counter, (iteration_counter/(2.0*ITERS)) * 100.0,
+				reorder_threadid, reorder_threadid, 
+				1 - reorder_threadid, 1 -reorder_threadid,
+				reorder_threadid, 1 -reorder_threadid); 
     } else {
         printf("Completed %ld iterations, no reordering occured\n",
                 iteration_counter); 

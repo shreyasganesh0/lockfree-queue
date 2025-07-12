@@ -24,3 +24,23 @@ Production grade lock-free queue implementation acheiving 50M ops/second. design
     was due to some compiler optimization.
 
 
+### Experiment 2 - CPU Instruction and Memory Reordering Experiment
+
+    ### Hypothesis
+
+    This experiment aims to implement Dekkers algorithmn to prove that memory reordering 
+    of instructions may cause deadlocks that are subtle and hard to reproduce
+    Hardware Specifications - Ryzen 9 7940HS single 8-core CCX
+
+    ### Results
+    Memory Reordering Detection Statistics
+    ========================================
+    Runs analyzed: 10
+    Minimum iterations: 9,992 (0.01M)
+    Maximum iterations: 102,408,891 (102.41M)
+    Mean iterations: 80,790,652 (80.79M)
+    Median iterations: 100,409,264 (100.41M)
+    Standard deviation: 40,208,990 (40.21M)
+    Coefficient of variation: 49.8%
+
+[Plot](experiments/memory_ordering/results/reordering_detection_distribution.png)

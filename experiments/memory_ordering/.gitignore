@@ -1,0 +1,56 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+
+# uv-specific files
+uv.lock # This file *should* generally be committed for reproducibility,
+        # but if you have a specific reason to ignore it (e.g., for a library project,
+        # or if you prefer to generate it on demand), you can uncomment this.
+
+# Distribution / packaging
+.Python/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/ # uv's linter/formatter cache
+
+# IDEs and Editors (common ones)
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.bak
+*.orig
+
+# Operating System Files
+.DS_Store
+.Trashes
+Thumbs.db
