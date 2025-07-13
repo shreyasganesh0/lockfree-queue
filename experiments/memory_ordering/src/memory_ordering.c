@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 #define ITERS 100000000
 
@@ -67,13 +68,31 @@ void *set_flag(void *id_ret) {
 
 int main(int argc, char *argv[]) {
 
+	int core_distance = 1;
+	if (argc == 2) {
+
+		if (strcmp(argv[1], "min") == 0) {
+
+			core_distance = 1;
+		} else if (strcmp(argv[1], "max") == 0) {
+
+			core_distance = 7;
+		} else {
+
+			perror("Invalid args");
+			exit(1);
+		}
+	}
+
+
+
     pthread_t thread_0, thread_1;
 
     reorder_t reorder_t0, reorder_t1;
     reorder_t0.id = 0;
     reorder_t0.reorder_flag = 0;
     reorder_t0.running_flag = 1;
-    reorder_t1.id = 7;
+    reorder_t1.id = core_distance;
     reorder_t1.reorder_flag = 0;
     reorder_t1.running_flag = 1;
 

@@ -1,0 +1,36 @@
+Test_Type,Run,Core_Config,Detected,Iterations,Time_Seconds
+"Baseline (No Stress)",1,max,1,100610250,1.004164505
+"Baseline (No Stress)",2,max,1,100575165,1.006580541
+"Baseline (No Stress)",3,max,1,100002009,1.005656444
+"Baseline (No Stress)",4,max,1,100399796,1.005485060
+"Baseline (No Stress)",5,max,1,100010880,1.004958376
+"CPU Saturation",1,max,1,100010877,1.002694298
+"CPU Saturation",2,max,1,103620901,1.002434727
+"CPU Saturation",3,max,1,100794637,1.002488068
+"CPU Saturation",4,max,1,101231548,1.002486705
+"CPU Saturation",5,max,1,100512128,1.002420490
+"Memory Pressure",1,max,1,100386444,1.006613924
+"Memory Pressure",2,max,1,100346897,1.008459510
+"Memory Pressure",3,max,1,100166751,1.003462689
+"Memory Pressure",4,max,1,104134023,1.003673608
+"Memory Pressure",5,max,1,101617526,1.009934778
+"Cache Thrashing",1,max,1,100000584,1.003664170
+"Cache Thrashing",2,max,1,105494671,1.003543072
+"Cache Thrashing",3,max,1,100796720,1.003019812
+"Cache Thrashing",4,max,1,100007029,1.003177631
+"Cache Thrashing",5,max,1,100650701,1.003338966
+"I/O Load",1,max,1,100954730,1.004409789
+"I/O Load",2,max,1,100078785,1.003650765
+"I/O Load",3,max,1,103284811,1.003242093
+"I/O Load",4,max,1,104911665,1.004009623
+"I/O Load",5,max,1,104319776,1.003442251
+"Adjacent Cores (0,1)",1,min,1,100833439,1.004154016
+"Adjacent Cores (0,1)",2,min,1,100528682,1.006714293
+"Adjacent Cores (0,1)",3,min,1,100439047,1.006389719
+"Adjacent Cores (0,1)",4,min,1,100822034,1.005325399
+"Adjacent Cores (0,1)",5,min,1,100240506,1.004670731
+"Maximum Distance (0,7)",1,max,1,101647739,1.005117736
+"Maximum Distance (0,7)",2,max,1,103872947,1.005259364
+"Maximum Distance (0,7)",3,max,1,102192741,1.004338514
+"Maximum Distance (0,7)",4,max,1,102632417,1.007274331
+"Maximum Distance (0,7)",5,max,1,101969122,1.005929730

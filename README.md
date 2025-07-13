@@ -7,15 +7,20 @@ Production grade lock-free queue implementation acheiving 50M ops/second. design
 
 ## Experiments
 
-### Experiment 1 - Cache Line Bouncing
+## Project Structure
+- all experiments live in  experiments/{experiment_name}
+- scripts for building testing and visualization live in scripts
+- source code lives in src
 
-    ### Part A - Shared V/S Seperate Cache Lines
+## Experiment 1 - Cache Line Bouncing (false_sharing)
+
+### Part A - Shared V/S Seperate Cache Lines
 
     Two threads incrementing seperate variables can be upto 15x slower than one thread doing both
     this experiment demonstrates why understanding CPU cache coherence is ciritical for production
     systems serving millions of users.
 
-    ### Part B - Odd Cache Timing 
+### Part B - Odd Cache Timing 
 
     Even after adding only 1 byte of padding between the two counters the same speed up is still witnessed, 
     despite being on the same cache line.lI tried to investigate this further
@@ -23,16 +28,32 @@ Production grade lock-free queue implementation acheiving 50M ops/second. design
     I first tried to print out the distance between the actual counters in memory to check if the reason
     was due to some compiler optimization.
 
+## Usage
+- Basic Build
+```
+scripts/build.sh
 
-### Experiment 2 - CPU Instruction and Memory Reordering Experiment
+bin/false_sharing bad
 
-    ### Hypothesis
+bin/false_sharing good
+
+# the cross and same ccx tests only apply to multi CCX architectures
+# read your CPU architecture details to see if this applies
+
+bin/false_sharing good cross-ccx 
+
+bin/false_sharing good same-ccx 
+```
+
+## Experiment 2 - CPU Instruction and Memory Reordering Experiment (memory_ordering)
+
+## Hypothesis
 
     This experiment aims to implement Dekkers algorithmn to prove that memory reordering 
     of instructions may cause deadlocks that are subtle and hard to reproduce
     Hardware Specifications - Ryzen 9 7940HS single 8-core CCX
 
-    ### Results
+## Results
     Memory Reordering Detection Statistics
     ========================================
     Runs analyzed: 10
@@ -43,4 +64,27 @@ Production grade lock-free queue implementation acheiving 50M ops/second. design
     Standard deviation: 40,208,990 (40.21M)
     Coefficient of variation: 49.8%
 
-[Plot](experiments/memory_ordering/results/reordering_detection_distribution.png)
+![Memory Reordering Plot](experiments/memory_ordering/results/reordering_detection_distribution.png)
+
+![Stress Test Results](experiments/memory_ordering/results/reordering_detection_distribution.png)
+
+## Usage
+- Basic Build
+```
+scripts/build.sh
+bin/memory_ordering
+```
+- Run Stress Test Script
+```
+scripts/stress_memory_ordering.sh
+```
+
+  - Optional Core Switching
+    ```
+    bin/memory_reordering min #core (0,1)
+    bin/memory_reordering max #core (0,7)
+    ```
+    - View Results
+    ```
+    scripts/visualize_stress_test.py
+    ```

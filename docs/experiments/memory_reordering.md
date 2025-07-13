@@ -180,3 +180,68 @@ CPU Explanation:
 - Thread 1's read of flag1 executed BEFORE its write to flag0 was visible
 - Thread 0's read of flag0 executed BEFORE its write to flag1 was visible
 - This is Store-Load reordering in action
+
+## Stress Testing
+
+Created a script that will run various stress tests to see the outcome
+of stressing the CPU on instruction reordering
+
+== Core Affinity Variations ===
+scripts/stress_memory_ordering.sh: line 187: [[:
+=== Running: CPU Saturation ===
+Starting stress: stress-ng --cpu 8 --timeout 0
+Run 1/5: DETECTED at 100010877 iterations (1.002694298s)
+Run 2/5: DETECTED at 103620901 iterations (1.002434727s)
+Run 3/5: DETECTED at 100794637 iterations (1.002488068s)
+Run 4/5: DETECTED at 101231548 iterations (1.002486705s)
+Run 5/5: DETECTED at 100512128 iterations (1.002420490s)
+100: syntax error: operand expected (error token is "=== Running: CPU Saturation ===
+Starting stress: stress-ng --cpu 8 --timeout 0
+Run 1/5: DETECTED at 100010877 iterations (1.002694298s)
+Run 2/5: DETECTED at 103620901 iterations (1.002434727s)
+Run 3/5: DETECTED at 100794637 iterations (1.002488068s)
+Run 4/5: DETECTED at 101231548 iterations (1.002486705s)
+Run 5/5: DETECTED at 100512128 iterations (1.002420490s)
+100")
+scripts/stress_memory_ordering.sh: line 192: [[:
+=== Running: Cache Thrashing ===
+Starting stress: stress-ng --cache 8 --timeout 0
+Run 1/5: DETECTED at 100000584 iterations (1.003664170s)
+Run 2/5: DETECTED at 105494671 iterations (1.003543072s)
+Run 3/5: DETECTED at 100796720 iterations (1.003019812s)
+Run 4/5: DETECTED at 100007029 iterations (1.003177631s)
+Run 5/5: DETECTED at 100650701 iterations (1.003338966s)
+100: syntax error: operand expected (error token is "=== Running: Cache Thrashing ===
+Starting stress: stress-ng --cache 8 --timeout 0
+Run 1/5: DETECTED at 100000584 iterations (1.003664170s)
+Run 2/5: DETECTED at 105494671 iterations (1.003543072s)
+Run 3/5: DETECTED at 100796720 iterations (1.003019812s)
+Run 4/5: DETECTED at 100007029 iterations (1.003177631s)
+Run 5/5: DETECTED at 100650701 iterations (1.003338966s)
+100")
+
+Generating visualization...
+Analyzing: results/stress_test_data_20250713_135528.csv
+
+Examining CSV structure...
+Total lines: 36
+Header: Test_Type,Run,Core_Config,Detected,Iterations,Time_Seconds
+Line 27 has 7 fields instead of 6: "Adjacent Cores (0,1)",1,min,1,100833439,1.004154016
+Line 28 has 7 fields instead of 6: "Adjacent Cores (0,1)",2,min,1,100528682,1.006714293
+Line 29 has 7 fields instead of 6: "Adjacent Cores (0,1)",3,min,1,100439047,1.006389719
+Line 30 has 7 fields instead of 6: "Adjacent Cores (0,1)",4,min,1,100822034,1.005325399
+Line 31 has 7 fields instead of 6: "Adjacent Cores (0,1)",5,min,1,100240506,1.004670731
+Line 32 has 7 fields instead of 6: "Maximum Distance (0,7)",1,max,1,101647739,1.005117736
+Line 33 has 7 fields instead of 6: "Maximum Distance (0,7)",2,max,1,103872947,1.005259364
+Line 34 has 7 fields instead of 6: "Maximum Distance (0,7)",3,max,1,102192741,1.004338514
+Line 35 has 7 fields instead of 6: "Maximum Distance (0,7)",4,max,1,102632417,1.007274331
+Line 36 has 7 fields instead of 6: "Maximum Distance (0,7)",5,max,1,101969122,1.005929730
+
+Visualization saved to: results/stress_test_analysis.png
+
+Summary Statistics:
+Total runs: 35
+Total detections: 35
+Overall detection rate: 100.0%
+Average iterations to detection: 101,431,371
+Average time to detection: 1.00 seconds
