@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
+#include <stdbool.h>
+#include <errno.h>
 
 typedef struct {
 
@@ -37,38 +40,25 @@ void init_nodes() {
 	node[3]->id = 3;
 	node[3]->data = 34;
 
-	hazard_pointers[1][0] = node[2];
-	hazard_pointers[1][1] = node[1];
-	hazard_pointers[2][0] = node[0];
-
 }
 
 void *simulate_reading(void *id) {
 
 	int t_id = *(int *)id;
 	node_t *t_node = NULL;
+	int hp_idx = 0;
 
-	switch (t_id) {
+	for (int sim = 0; sim < 4; sim++) {
 
-		case 0:
+		int curr_node = rand() % 4;
+		int curr_sleep_time = (rand() % 3) + 1;
 
-			t_node = node[0];
-			printf("Thread 0: currently reading node 0 with value %d\n", t_node->data);
-			break;
+		t_node = node[curr_node];
+		while (!__sync_bool_compare_and_swap(&hazard_pointers[t_id][hp_idx], NULL, t_node)) {};
 
-		case 1:
-
-			t_node = node[2];
-			printf("Thread 1: currently reading node 2 with value %d\n", t_node->data);
-			break;
-
-		case 2:
-
-			printf("Thread 2: not reading anything (idle)\n");
-			break;
-
-		default:
-			printf("invalid thread id");
+		sleep(curr_sleep_time);
+		
+		__sync_lock_release(&hazard_pointers[t_id][hp_idx]);
 	}
 
 	return NULL;
@@ -89,12 +79,14 @@ void print_snapshot() {
 	for (int i = 0; i < 3; i++) {
 
 		int null_count = 0;
-		node_p_t curr_node_ids[2];
+		int right = 0;
+		node_p_t curr_node_ids[2] = {};
 		for (int j = 0; j < 2; j++) {
 
 			if (hazard_pointers[i][j] == NULL) {
 
-				null_count = j + 1;
+				null_count += 1;
+				if (j == 1) right = 1;
 			} else{
 
 				switch (hazard_pointers[i][j]->id) {
@@ -123,20 +115,22 @@ void print_snapshot() {
 			}
 		}		
 
+		if (right == 1 && null_count == 1) null_count++;
+
 		switch (null_count) {
 
 			case 1:
-				printf("Thread %d: [%ld, NULL] (protecting node %d\n", i,
+				printf("Thread %d: [%ld, NULL] (protecting node %d)\n", i,
 						curr_node_ids[0].data,  
 						curr_node_ids[0].id);
 				break;
 			case 2:
-				printf("Thread %d: [NULL, %ld] (protecting node %d\n", i,
+				printf("Thread %d: [NULL, %ld] (protecting node %d)\n", i,
 						curr_node_ids[1].data,  
 						curr_node_ids[1].id);
 				break;
 			case 3:
-				printf("Thread %d: [%ld, %ld] (protecting node %d and %d\n", i,
+				printf("Thread %d: [%ld, %ld] (protecting node %d and %d)\n", i,
 						curr_node_ids[0].data, curr_node_ids[1].data, 
 						curr_node_ids[0].id,curr_node_ids[1].id);
 				break;
@@ -166,8 +160,19 @@ void print_snapshot() {
 
 }
 
+void sleep_ms(int millisecs) {
+
+	struct timespec ts;
+
+	ts.tv_sec = millisecs/1000;
+	ts.tv_nsec = (millisecs % 1000) * 1000000000;
+
+	while (nanosleep(&ts, &ts) == -1 && errno == EINTR);
+}
+
 int main(int argc, char *argv[]) {
 
+	srand(time(NULL));
 	init_nodes();
 
 	pthread_t thread_0, thread_1, thread_2;
@@ -191,7 +196,14 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	} 
 
-	print_snapshot();
+	for (int i = 1; i <= 10; i++) {
+
+		printf("\n=== ITERATION %d ===\n\n", i);
+
+		print_snapshot();
+		sleep_ms(500);
+
+	}
 
 	if (pthread_join(thread_0, NULL) != 0) {
 
