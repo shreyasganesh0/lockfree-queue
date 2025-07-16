@@ -21,6 +21,8 @@ typedef struct {
 node_t *hazard_pointers[3][2] = {NULL};
 node_t *node[4];
 
+#include "delete_nodes.c"
+
 void init_nodes() {
 
 
@@ -156,6 +158,10 @@ void print_snapshot() {
 		}
 	}
 
+	printf("Deletion Statistics\n");
+	printf ("- Blocked: %d\n", deletion_blocked);
+	printf ("- Successful: %d\n", deletion_success);
+
 	return;
 
 }
@@ -175,10 +181,11 @@ int main(int argc, char *argv[]) {
 	srand(time(NULL));
 	init_nodes();
 
-	pthread_t thread_0, thread_1, thread_2;
+	pthread_t thread_0, thread_1, thread_2, thread_3;
 	int id0 = 0;
 	int id1 = 1;
 	int id2 = 2;
+	int id3 = 3;
 
 	if (pthread_create(&thread_0, NULL, simulate_reading, &id0) != 0) {
 
@@ -191,6 +198,11 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	} 
 	if (pthread_create(&thread_2, NULL, simulate_reading, &id2) != 0) {
+
+		perror("Failed to create thread 2");
+		exit(1);
+	} 
+	if (pthread_create(&thread_3, NULL, delete_nodes, &id3) != 0) {
 
 		perror("Failed to create thread 2");
 		exit(1);
@@ -218,6 +230,11 @@ int main(int argc, char *argv[]) {
 	if (pthread_join(thread_2, NULL) != 0) {
 
 		perror("Failed to create thread 2");
+		exit(1);
+	}
+	if (pthread_join(thread_3, NULL) != 0) {
+
+		perror("Failed to create thread 3");
 		exit(1);
 	}
 }
