@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
 	} 
 	if (pthread_create(&thread_3, NULL, delete_nodes, &id3) != 0) {
 
-		perror("Failed to create thread 2");
+		perror("Failed to create thread 3");
 		exit(1);
 	} 
 
