@@ -89,3 +89,27 @@ scripts/stress_memory_ordering.sh
     ```
     scripts/visualize_stress_test.py
     ```
+## Experiment 3 - Hazard Pointers Visualization
+Hazard pointers are a way to make algorithms that are garunteed to be lock free safe in Garbage 
+Collected languages  to be lock free safe in Memory managed languages.
+
+Each object keeps track of a hazard pointer list
+    This list is like a flag showing that it is currently utilising the resource
+
+This way if another thread tries to delete the resource it checks the nodes hazard pointer to see
+if any other thread is using it before freeing the node.
+
+This prevents use after free bugs that can occur without a lock.
+
+### Usage
+- Build the script
+```
+scripts/tool_build.sh
+```
+- Run the visualization
+```
+bin/hazard_pointers_viz
+```
+
+This will run a visualization on 4 nodes with 3 threads reading from the nodes
+and 1 thread trying to delete nodes if not blocked by the hazard pointer
