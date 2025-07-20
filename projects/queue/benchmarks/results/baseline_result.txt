@@ -1,0 +1,4 @@
+Time to insert 1000000 elements: 0.017640 seconds
+Time to pop 1000000 elements: 0.039408 seconds
+Total Time on 2000000 elements: 0.057048 seconds
+Rate: 35058184.930138 ops/seconds
