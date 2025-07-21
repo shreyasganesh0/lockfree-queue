@@ -1,4 +1,5 @@
 #include <chrono>
+#include <thread>
 #include <queue>
 #include <mutex>
 #include <time.h>
@@ -17,7 +18,6 @@ void TestQueue::push(int val) {
 
 bool TestQueue::pop(int &val) {
 
-
 	const std::lock_guard<std::mutex> guard(m);
 	if (q.empty()) return false;
 	val = q.front();
@@ -26,29 +26,50 @@ bool TestQueue::pop(int &val) {
 	return true;
 }
 
+void push_func(TestQueue &queue) {
+
+	const auto start_push{std::chrono::high_resolution_clock::now()};
+	for (int i = 0; i < ITERS; i++) {
+
+		queue.push(i);
+	}
+	const auto stop_push{std::chrono::high_resolution_clock::now()};
+	const std::chrono::duration<double> push_time{stop_push - start_push};
+	
+	printf("Time to insert 1000000 elements: %.6f seconds\n", push_time.count());
+}
+
+void pop_func(TestQueue &queue) {
+
+	int tmp_val;
+	int pop_count = 0;
+	const auto start_pop{std::chrono::high_resolution_clock::now()};
+
+	while (pop_count < ITERS) {
+		while (queue.pop(tmp_val)) {pop_count++;}
+	}
+
+	const auto stop_pop{std::chrono::high_resolution_clock::now()};
+	const std::chrono::duration<double> pop_time{stop_pop - start_pop};
+
+	printf("Time to pop 1000000 elements: %.6f seconds\n", pop_time.count());
+}
 
 int main(void) {
 
 	TestQueue benchmark_queue = {};
 
-	const auto start_push{std::chrono::high_resolution_clock::now()};
-	for (int i = 0; i < ITERS; i++) {
+	std::jthread t0(push_func, std::ref(benchmark_queue));
+	std::jthread t1(pop_func, std::ref(benchmark_queue));
 
-		benchmark_queue.push(i);
-	}
-	const auto stop_push{std::chrono::high_resolution_clock::now()};
+	const auto start_threads{std::chrono::high_resolution_clock::now()};
+	t0.join();
+	t1.join();
+	const auto stop_threads{std::chrono::high_resolution_clock::now()};
+	const std::chrono::duration<double> thread_time{stop_threads - start_threads};
 
 	int tmp_val;
-	const auto start_pop{std::chrono::high_resolution_clock::now()};
-	while (benchmark_queue.pop(tmp_val)) {}
-	const auto stop_pop{std::chrono::high_resolution_clock::now()};
-
-	const std::chrono::duration<double> push_time{stop_push - start_push};
-	const std::chrono::duration<double> pop_time{stop_pop - start_pop};
-
-	printf("Time to insert 1000000 elements: %.6f seconds\n", push_time.count());
-	printf("Time to pop 1000000 elements: %.6f seconds\n", pop_time.count());
-	printf("Total Time on 2000000 elements: %.6f seconds\n", (pop_time + push_time).count());
-	printf("Rate: %.6f ops/seconds\n", (2.0 * ITERS)/(pop_time + push_time).count());
+	printf("Total Time on 2000000 elements: %.6f seconds\n", thread_time.count());
+	printf("Rate: %.6f ops/seconds\n", (2.0 * ITERS)/thread_time.count());
 
 }
