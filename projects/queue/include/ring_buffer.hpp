@@ -7,7 +7,7 @@ class RingBuffer {
 
 	T buffer[SIZE];
 	size_t read_end = 0;
-	size_t write_end = 0;
+	std::atomic<size_t> write_end = 0;
 	bool empty_flag = true;
 
 public:

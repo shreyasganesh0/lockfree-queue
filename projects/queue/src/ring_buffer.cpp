@@ -5,79 +5,72 @@
 template<typename T, size_t SIZE>
 bool RingBuffer<T, SIZE>::pop(T& item) {
 	
-	if ((read_end != write_end) || (read_end == write_end && empty_flag == false)) {
-		if (read_end == write_end) empty_flag = true;
-		item = buffer[read_end];
-		read_end++;
-		read_end %= SIZE;
-		return true;
-	}
+	size_t curr_read_end, next_read_end;
 
-	return false;
+	do {
+
+		curr_read_end = read_end.load():
+		next_read_end = (curr_read_end + 1) % SIZE;
+
+		if (next_read_end == write_end.load()) {
+
+			return false;
+		}
+	} while (!read_end.compare_exchange(curr_read_end, next_read_end));
+
+	return true;
 }
 
 template<typename T, size_t SIZE>
 bool RingBuffer<T, SIZE>::push(const T& item) {
 
+	size_t curr_tail, next_tail;
 
-	if (((write_end % SIZE) != read_end) || 
-			((write_end % SIZE) == read_end && (empty_flag == true))) {
-		if (read_end == write_end) empty_flag = false;
-		buffer[write_end] = item;
-		write_end++;
-		write_end %= SIZE;
-		return true;
-	}
+	do {
+		curr_tail = write_end.load();
+		next_tail = (curr_tail + 1) % SIZE;
 
-	return false;
+		if (next_tail == read_end.load()) {
+
+			return false;
+		}
+	} while (!(write_end.compare_exchange_weak(curr_tail, next_tail));
+
+	item = buffer[curr_read_end];
+
+	return true;
 }
 
+void push_element(RingBuffer &buf) {
+
+	for (int i = id * ELES; i < (id + 1) * ELES; i++) {
+
+		printf("%d ", i)
+	}
+}
 
 int main(void) {
 
 	RingBuffer<int, 10> ring_buf;
 
-	printf("Pushing 0-9\n");
+	int id0 = 0;
+	int id1 = 1;
+	int id2 = 2;
+	int id3 = 3;
+	int id4 = 4;
+	int id5 = 5;
+	std::jthread t0(push_elements, ring_buf);
+	std::jthread t1(push_elements, ring_buf);
+	std::jthread t2(push_elements, ring_buf);
+	std::jthread t3(push_elements, ring_buf);
 
-	printf("Pushed: ");
-	for (int i = 0; i < 11; i++) {
+	std::jthread t4(pop_elements, ring_buf);
+	std::jthread t5(pop_elements, ring_buf);
 
-		if (ring_buf.push(i)) {
-			printf("%d ", i);
-		} else {
-
-			printf("Failed to push %d, buffer full", i);
-		}
-	}
-
-	printf("\n");
-
-	printf("Popping 5 elements\n");
-
-	printf("Popped: ");
-	int tmp = 0;
-	for (int i = 0; i < 5; i++) {
-
-		ring_buf.pop(tmp);
-		printf("%d ", tmp);
-	}
-	printf("\n");
-
-	printf("Pushing 10-12\n");
-	printf("Pushed: ");
-	for (int i = 0; i < 3; i++) {
-
-		ring_buf.push(i + 10);
-		printf("%d ", i + 10);
-	}
-
-	printf("\n");
-	printf("Popping remaining...\n");
-
-	printf("Popped: ");
-	while (ring_buf.pop(tmp)) {printf("%d ", tmp);}
-
-	printf("\n");
-	printf("Buffer is now empty\n");
-
+	t0.join();
+	t1.join();
+	t2.join();
+	t3.join();
+	t4.join();
+	t5.join();
 }
