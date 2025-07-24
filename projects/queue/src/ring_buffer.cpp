@@ -1,6 +1,8 @@
 #include "ring_buffer.hpp"
 #include <stdio.h>
 #include <stdlib.h>
+#include <atomic>
+#include <thread>
 
 template<typename T, size_t SIZE>
 bool RingBuffer<T, SIZE>::pop(T& item) {
@@ -9,15 +11,16 @@ bool RingBuffer<T, SIZE>::pop(T& item) {
 
 	do {
 
-		curr_read_end = read_end.load():
+		curr_read_end = read_end.load();
 		next_read_end = (curr_read_end + 1) % SIZE;
 
-		if (next_read_end == write_end.load()) {
+		if (curr_read_end == write_end.load()) {
 
 			return false;
 		}
-	} while (!read_end.compare_exchange(curr_read_end, next_read_end));
+	} while (!read_end.compare_exchange_weak(curr_read_end, next_read_end));
 
+	item = buffer[curr_read_end];
 	return true;
 }
 
@@ -34,43 +37,48 @@ bool RingBuffer<T, SIZE>::push(const T& item) {
 
 			return false;
 		}
-	} while (!(write_end.compare_exchange_weak(curr_tail, next_tail));
+	} while (!(write_end.compare_exchange_weak(curr_tail, next_tail)));
 
-	item = buffer[curr_read_end];
+	buffer[curr_tail] = item;
 
 	return true;
 }
 
-void push_element(RingBuffer &buf) {
+template<typename T, size_t SIZE>
+void push_elements(thread_send_t<T, SIZE> *thread_state) {
 
-	for (int i = id * ELES; i < (id + 1) * ELES; i++) {
+	for (int i = thread_state->t_id * ELES; i < (thread_state->t_id + 1) *ELES; i++) {
 
-		printf("%d ", i)
+		thread_state->buf->push(i);
 	}
+
+	printf("Thread %d finished inserting\n", thread_state->t_id);
 }
 
 int main(void) {
 
-	RingBuffer<int, 10> ring_buf;
+	RingBuffer<int, 1000001> ring_buf;
 
-	int id0 = 0;
-	int id1 = 1;
-	int id2 = 2;
-	int id3 = 3;
-	int id4 = 4;
-	int id5 = 5;
-	std::jthread t0(push_elements, ring_buf);
-	std::jthread t1(push_elements, ring_buf);
-	std::jthread t2(push_elements, ring_buf);
-	std::jthread t3(push_elements, ring_buf);
+	thread_send_t<int, 1000001> t0{0, &ring_buf};
+	thread_send_t<int, 1000001> t1{1, &ring_buf};
+	thread_send_t<int, 1000001> t2{2, &ring_buf};
+	thread_send_t<int, 1000001> t3{3, &ring_buf};
 
-	std::jthread t4(pop_elements, ring_buf);
-	std::jthread t5(pop_elements, ring_buf);
+	std::jthread thread0(push_elements<int, 1000001>, &t0);
+	std::jthread thread1(push_elements<int, 1000001>, &t1);
+	std::jthread thread2(push_elements<int, 1000001>, &t2);
+	std::jthread thread3(push_elements<int, 1000001>, &t3); 
 
-	t0.join();
-	t1.join();
-	t2.join();
-	t3.join();
-	t4.join();
-	t5.join();
+	int tmp = 0;
+	int count = 0;
+	do {
+	while (ring_buf.pop(tmp)) {count++; printf("Popped %d ", tmp);}
+	} while (count < 4 * ELES);
+
+	printf("\nTotal Popped %d", count);
+
+	thread0.join();
+	thread1.join();
+	thread2.join();
+	thread3.join();
 }
